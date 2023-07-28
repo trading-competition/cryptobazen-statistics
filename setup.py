@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='cryptobazen_statistics',
-    version='0.0.1',
+    version='0.0.2',
     description='Statistic functions for Transformer models',
     long_description='The PyToch Transformer model needs sometimes a custom statistic function. This package contains some of these functions.',
     author='Cryptobazen',
