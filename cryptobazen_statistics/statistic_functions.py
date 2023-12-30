@@ -260,3 +260,4 @@ class CyclicalTransformer:
             The transformed data as a tuple of two numpy arrays (x_sin, x_cos).
         """
         return self.transform(x)
+
