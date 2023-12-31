@@ -53,6 +53,10 @@ class PercentageChangeScaler:
                                           copy=copy)
         self.scale_ = None
         self.center_ = None
+        self.starting_price = None
+        self.starting_time = None
+        self.min = None
+        self.max = None
 
     def fit_transform(self, prices):
         # Compute the percentage changes
@@ -69,45 +73,42 @@ class PercentageChangeScaler:
         # Inverse the min-max scale
         unscaled_data = self._min_max_inverse_scale(scaled_data)
         # Inverse transform the data using the inverse function of the RobustScaler
-        inverse_scaled_changes = self.robust_scaler.inverse_transform(unscaled_data.reshape(-1, 1))
+        inverse_scaled_changes = self.robust_scaler.inverse_transform(unscaled_data)
+        inverse_scaled_changes = np.round(inverse_scaled_changes, decimals=6)
         # Convert percentage changes back to prices
-        prices = self._calculate_prices_from_changes(inverse_scaled_changes.flatten())
+        prices = self._calculate_prices_from_changes(inverse_scaled_changes)
         return prices
 
-    @staticmethod
-    def _calculate_percentage_changes(prices):
+    def _calculate_percentage_changes(self, prices):
         # Calculate the percentage changes from the prices
+        self.starting_price = np.array(prices)[0]
+        self.starting_time = np.array(prices.index)[0]
         new = np.array(prices[1:])
         old = np.array(prices[:-1])
-
         changes = np.round(new - old, decimals=2)
-        percentual_changes = np.round(changes / old * 100, decimals=4)
+        percentual_changes = np.round(changes / old * 100, decimals=6)
         # Add a 0 at the beginning to keep the same length
         percentual_changes = np.insert(percentual_changes, 0, 0)
         percentual_changes = percentual_changes.reshape(-1, 1)
         return percentual_changes
 
-    @staticmethod
-    def _calculate_prices_from_changes(changes):
+    def _calculate_prices_from_changes(self, changes):
         # Calculate the prices back from percentage changes
-        prices = [100]  # Starting with a base price (can be adjusted)
+        prices = [self.starting_price]
         for change in changes:
-            prices.append(prices[-1] * (1 + change))
-        return np.array(prices)
+            prices.append(prices[-1] * (1 + change / 100))
+        return np.round(np.array(prices), decimals=2)[1:]
 
-    @staticmethod
-    def _min_max_scale(data):
+    def _min_max_scale(self, data):
         # Scale the data to the range [-1, 1]
-        max_val = np.max(data)
-        min_val = np.min(data)
-        return 2 * (data - min_val) / (max_val - min_val) - 1
+        self.max = np.max(data)
+        self.min = np.min(data)
+        scaled_data = 2 * (data - self.min) / (self.max - self.min) - 1
+        return scaled_data
 
-    @staticmethod
-    def _min_max_inverse_scale(scaled_data):
-        # Inverse the scaling from the range [-1, 1] to the original scale
-        max_val = 1
-        min_val = -1
-        return (scaled_data + 1) / 2 * (max_val - min_val) + min_val
+    def _min_max_inverse_scale(self, scaled_data):
+        inversed_data = (scaled_data + 1) / 2 * (self.max - self.min) + self.min
+        return inversed_data
 
 
 class LogRobustScaler:
