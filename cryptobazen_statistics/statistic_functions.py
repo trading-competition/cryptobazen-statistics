@@ -53,16 +53,13 @@ class PercentageChangeScaler:
         # Compute the percentage changes
         percentage_changes = self._calculate_percentage_changes(prices)
         smooth_pct_changes = self._smooth(percentage_changes)
-        # Rescale to the range [-1, 1]
         min_max_scaled_changes = self._min_max_scale(smooth_pct_changes)
         return min_max_scaled_changes.flatten()
 
     def inverse_transform(self, scaled_data):
         # Inverse the min-max scale
-        min_max_scaled_changes = self._min_max_inverse_scale(scaled_data)
-        smooth_pct_changes = self._inverse_smooth(min_max_scaled_changes)
-        percentage_changes = np.round(smooth_pct_changes, decimals=6)
-        # Convert percentage changes back to prices
+        smooth_pct_changes = self._min_max_inverse_scale(scaled_data)
+        percentage_changes = self._inverse_smooth(smooth_pct_changes)
         prices = self._calculate_prices_from_changes(percentage_changes)
         return prices
 
@@ -110,7 +107,7 @@ class PercentageChangeScaler:
             ((data - self.upper_percentile_threshold) / 0.25) + self.upper_percentile_threshold,
             np.where(
                 data < self.lower_percentile_threshold,
-                ((self.lower_percentile_threshold - data) / 0.25) + self.lower_percentile_threshold,
+                ((data - self.lower_percentile_threshold) / 0.25) + self.lower_percentile_threshold,
                 data
             )
         )
