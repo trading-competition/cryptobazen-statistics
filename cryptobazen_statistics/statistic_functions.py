@@ -40,12 +40,14 @@ class PercentageChangeScaler:
     inverse_transform(scaled_data):
         Inverse the transformation from scaled data back to the original price scale.
     """
-    def __init__(self, quantile_range=(10, 90)):
+    def __init__(self, quantile_range=(10, 35, 65, 90)):
         self.starting_price = None
         self.starting_time = None
         self.quantile_range = quantile_range
-        self.upper_percentile_threshold = None
-        self.lower_percentile_threshold = None
+        self.quantile_1_treshold = None
+        self.quantile_2_treshold = None
+        self.quantile_3_treshold = None
+        self.quantile_4_treshold = None
         self.min = None
         self.max = None
 
@@ -85,17 +87,27 @@ class PercentageChangeScaler:
 
     def _smooth(self, data):
         # Smooth the data so that extreme changes are less extreme
-        self.lower_percentile_threshold = np.percentile(data, self.quantile_range[0])
-        self.upper_percentile_threshold = np.percentile(data, self.quantile_range[1])
+        self.quantile_1_treshold = np.percentile(data, self.quantile_range[0])
+        self.quantile_2_treshold = np.percentile(data, self.quantile_range[1])
+        self.quantile_3_treshold = np.percentile(data, self.quantile_range[2])
+        self.quantile_4_treshold = np.percentile(data, self.quantile_range[3])
 
         # Apply smoothing to values above the percentile threshold
         smoothed_data = np.where(
-            data > self.upper_percentile_threshold,
-            self.upper_percentile_threshold + ((data - self.upper_percentile_threshold) * 0.25),
+            data > self.quantile_4_treshold,
+            self.quantile_4_treshold + ((data - self.quantile_4_treshold) * 0.01),
             np.where(
-                data < self.lower_percentile_threshold,
-                self.lower_percentile_threshold - ((self.lower_percentile_threshold - data) * 0.25),
-                data
+                data > self.quantile_3_treshold,
+                self.quantile_3_treshold + ((data - self.quantile_3_treshold) * 0.2),
+                np.where(
+                    data < self.quantile_1_treshold,
+                    self.quantile_1_treshold - ((self.quantile_1_treshold - data) * 0.01),
+                    np.where(
+                        data < self.quantile_2_treshold,
+                        self.quantile_2_treshold - ((self.quantile_2_treshold - data) * 0.2),
+                        data
+                    )
+                )
             )
         )
         return smoothed_data
@@ -103,12 +115,20 @@ class PercentageChangeScaler:
     def _inverse_smooth(self, data):
         # Inverse the smoothing transformation
         inversed_data = np.where(
-            data > self.upper_percentile_threshold,
-            ((data - self.upper_percentile_threshold) / 0.25) + self.upper_percentile_threshold,
+            data > self.quantile_4_treshold,
+            ((data - self.quantile_4_treshold) / 0.01) + self.quantile_4_treshold,
             np.where(
-                data < self.lower_percentile_threshold,
-                ((data - self.lower_percentile_threshold) / 0.25) + self.lower_percentile_threshold,
-                data
+                data > self.quantile_3_treshold,
+                ((data - self.quantile_3_treshold) / 0.2) + self.quantile_3_treshold,
+                np.where(
+                    data < self.quantile_1_treshold,
+                    ((data - self.quantile_1_treshold) / 0.01) + self.quantile_1_treshold,
+                    np.where(
+                        data < self.quantile_2_treshold,
+                        ((data - self.quantile_2_treshold) / 0.2) + self.quantile_2_treshold,
+                        data
+                    )
+                )
             )
         )
         return inversed_data
@@ -123,6 +143,7 @@ class PercentageChangeScaler:
     def _min_max_inverse_scale(self, scaled_data):
         inversed_data = scaled_data * (self.max - self.min) + self.min
         return inversed_data
+
 
 
 class LogRobustScaler:
