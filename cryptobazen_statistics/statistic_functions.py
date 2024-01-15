@@ -40,8 +40,8 @@ class PercentageChangeScaler:
     inverse_transform(scaled_data):
         Inverse the transformation from scaled data back to the original price scale.
     """
-    def __init__(self, quantile_range=(10, 35, 65, 90)):
-        self.starting_price = None
+    def __init__(self, quantile_range: list = [10, 35, 65, 90], starting_price: float = None):
+        self.starting_price = starting_price
         self.starting_time = None
         self.quantile_range = quantile_range
         self.quantile_1_treshold = None
